@@ -1,13 +1,25 @@
-import { Text, MaskedTextField, PrimaryButton } from '@fluentui/react';
+import useClipboard from "react-use-clipboard";
+
+import { Text, MaskedTextField, PrimaryButton, DefaultButton, TeachingBubble } from '@fluentui/react';
 import CustomPage from '../components/CustomPage';
 
-export function PageEnterID(peerjsID: string | null, peerjsRemoteID: string, makeCallToID:Function, setPeerjsRemoteID: React.Dispatch<React.SetStateAction<string>>, setCurrentPage: React.Dispatch<React.SetStateAction<string>>) {
+
+export function PageEnterID({ peerjsID, peerjsRemoteID, makeCallToID, setPeerjsRemoteID, setCurrentPage }: { peerjsID: string | null; peerjsRemoteID: string; makeCallToID: Function; setPeerjsRemoteID: React.Dispatch<React.SetStateAction<string>>; setCurrentPage: React.Dispatch<React.SetStateAction<string>>; }): JSX.Element {
+
+  const [isCopied, setCopied] = useClipboard(peerjsID?peerjsID:"", {
+    // `isCopied` will go back to `false` after 1000ms.
+    successDuration: 1000,
+  });
+
   return <CustomPage>
     <div className="idEnterGrid">
       <div>
         <Text variant="xLarge">ID dieses PCs:</Text>
         <br />
         <Text variant="xxLarge">{peerjsID}</Text>
+        <br />
+        <br />
+        <DefaultButton id="targetButton" onClick={setCopied}>ID Kopieren</DefaultButton>
       </div>
       <div className="maxWidth">
         <div className="inputRow">
@@ -18,5 +30,13 @@ export function PageEnterID(peerjsID: string | null, peerjsRemoteID: string, mak
         </div>
       </div>
     </div>
+    {isCopied && (
+      <TeachingBubble
+        target="#targetButton"
+        onDismiss={() => { }}
+        headline="Kopiert"
+      >
+      </TeachingBubble>
+    )}
   </CustomPage>;
 }

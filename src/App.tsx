@@ -1,6 +1,6 @@
 import './App.css';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useHistory, Route, Switch } from 'react-router-dom';
 
@@ -39,6 +39,9 @@ function App() {
 
   const [peerjsOutgoingCall, setPeerjsOutgoingCall] = useState<any>();
 
+  const [audioSRC, setAudioSRC] = useState<any>();
+  const audioRef = useRef<HTMLAudioElement>(null)
+
   // const [peerjsOutgoingCall, setPeerjsOutgoingCall] = useState<any>();
   const [peerjsIncomingCall, setPeerjsIncomingCall] = useState<any>();
   const [peerjsIncomingData, setPeerjsIncomingData] = useState<Peer.DataConnection>();
@@ -57,7 +60,7 @@ function App() {
       setPeerjsIncomingCall(con)
     })
 
-    peer.on("connection", (con)=>{
+    peer.on("connection", (con) => {
       setPeerjsIncomingData(con)
     })
 
@@ -95,7 +98,14 @@ function App() {
     if (currentPage === "/connected") {
       history.replace('/connected')
     }
-  }, [history, peerjsID, currentPage, peerjsIncomingCall])
+  }, [history, peerjsID, currentPage, peerjsIncomingCall, audioSRC, audioRef])
+
+  useEffect(() => {
+    try {
+      audioRef!.current!.srcObject = audioSRC
+    } catch (error) {
+    }
+  }, [audioSRC, audioRef])
 
   function makeCallToID(conToid: string) {
 
@@ -116,11 +126,14 @@ function App() {
   }
 
   function acceptCall() {
-    peerjsIncomingData?.send("connected")
-    peerjsIncomingData?.close()
+    peerjsIncomingData?.send("start")
+    setTimeout(() => {
+      peerjsIncomingData?.close()
+    }, 500);
     peerjsIncomingCall.answer(undefined)
-    peerjsIncomingCall.on("stream", () => {
+    peerjsIncomingCall.on("stream", (stream: any) => {
       setCurrentPage("/connected")
+      setAudioSRC(stream)
     })
   }
 
@@ -134,13 +147,14 @@ function App() {
                 {PageStart()}
               </Route>
               <Route exact path="/enterID" key="/enterID">
-                {PageEnterID(peerjsID, peerjsRemoteID, makeCallToID, setPeerjsRemoteID, setCurrentPage)}
+                <PageEnterID peerjsID={peerjsID} peerjsRemoteID={peerjsRemoteID} makeCallToID={makeCallToID} setPeerjsRemoteID={setPeerjsRemoteID} setCurrentPage={setCurrentPage} />
               </Route>
               <Route exact path="/connecting" key="/connecting">
                 {PageConnecting()}
               </Route>
               <Route exact path="/connected" key="/connected">
                 {PageConnected(peerjsID, peerjsRemoteID)}
+                <audio ref={audioRef} autoPlay></audio>
               </Route>
               <Route exact path="/error" key="/error">
                 {PageError(history)}
