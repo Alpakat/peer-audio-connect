@@ -2,8 +2,6 @@ import { PrimaryButton, DefaultButton, Dialog, DialogFooter, DialogType } from '
 
 export function CustomDialog(currentPage: string, peerjsRemoteID: string, acceptCall: Function, setCurrentPage: React.Dispatch<React.SetStateAction<string>>) {
 
-    console.log(currentPage)
-
     return <Dialog
         hidden={currentPage !== "/callrec"}
         onDismiss={() => { }}
@@ -24,7 +22,9 @@ export function CustomDialog(currentPage: string, peerjsRemoteID: string, accept
                 acceptCall();
                 setCurrentPage("/connecting");
             }} text="Annehmen" />
-            <DefaultButton onClick={() => { }} text="Ablehnen" />
+            <DefaultButton onClick={() => {
+                setCurrentPage("/reload");
+            }} text="Ablehnen" />
         </DialogFooter>
     </Dialog>;
 }
