@@ -14,6 +14,7 @@ import { PageConnecting } from './pages/PageConnecting';
 import { PageConnected } from './pages/PageConnected';
 import { CustomDialog } from './CustomDialog';
 import { PageError } from './pages/PageError';
+import { callbackify } from 'node:util';
 
 declare global {
   interface MediaDevices {
@@ -44,7 +45,7 @@ function App() {
   const audioRef = useRef<HTMLAudioElement>(null)
 
   // const [peerjsOutgoingCall, setPeerjsOutgoingCall] = useState<any>();
-  const [peerjsIncomingCall, setPeerjsIncomingCall] = useState<any>();
+  const [peerjsIncomingCall, setPeerjsIncomingCall] = useState<Peer.MediaConnection>();
   const [peerjsIncomingData, setPeerjsIncomingData] = useState<Peer.DataConnection>();
 
   const [currentPage, setCurrentPage] = useState("/");
@@ -57,12 +58,25 @@ function App() {
 
     peer.on("call", (con) => {
       setPeerjsRemoteID(con.peer)
-      console.log("incoming")
       setPeerjsIncomingCall(con)
+
+      con.on("close", () => {
+        setCurrentPage("/error")
+      })
+      // con.on("error", ()=>{
+      //   setCurrentPage("/error")
+      // })
     })
 
     peer.on("connection", (con) => {
       setPeerjsIncomingData(con)
+
+      con.on("close", () => {
+        setCurrentPage("/error")
+      })
+      // con.on("error", ()=>{
+      //   setCurrentPage("/error")
+      // })
     })
 
     setTimeout(() => {
@@ -82,7 +96,6 @@ function App() {
       if (peerjsID === null) {
         history.replace('/')
       } else {
-        console.log(peerjsIncomingCall)
         if (peerjsIncomingCall === undefined) {
           history.replace('/enterID')
         } else {
@@ -91,15 +104,42 @@ function App() {
       }
 
     }
-
+    let timeouta: NodeJS.Timeout;
     if (currentPage === "/connecting") {
       history.replace('/connecting')
+      timeouta = setTimeout(() => {
+        setCurrentPage("/error")
+      }, 10000);
     }
 
     if (currentPage === "/connected") {
       history.replace('/connected')
     }
-  }, [history, peerjsID, currentPage, peerjsIncomingCall, audioSRC, audioRef])
+
+    if (currentPage === "/error") {
+      history.replace('/error')
+      console.log(peerjsIncomingData)
+      peerjsOutgoingCall?.close()
+      peerjsIncomingCall?.close()
+      peerjsIncomingData?.close()
+    }
+
+    let timeoutb: NodeJS.Timeout;
+    if (currentPage === "/reload") {
+      history.replace('/reload')
+      peerjsOutgoingCall?.close()
+      peerjsIncomingCall?.close()
+      peerjsIncomingData?.close()
+      timeoutb = setTimeout(() => {
+        window.location.reload()
+      }, 100);
+    }
+
+    return () => {
+      clearTimeout(timeouta)
+      clearTimeout(timeoutb)
+    }
+  }, [history, peerjsID, currentPage, peerjsIncomingCall, peerjsOutgoingCall, peerjsIncomingData, audioSRC, audioRef])
 
   useEffect(() => {
     try {
@@ -110,23 +150,30 @@ function App() {
 
   useEffect(() => {
     try {
-      audioRef!.current!.volume = audioVol/100
+      audioRef!.current!.volume = audioVol / 100
     } catch (error) {
     }
   }, [audioVol])
 
   function makeCallToID(conToid: string) {
 
-    navigator.mediaDevices.getDisplayMedia({ audio: { echoCancellation: false, channelCount: 2, autoGainControl: false, noiseSuppression: false }, video: { frameRate: 1, height: 100, width: 100} }).then((stream) => {
+    navigator.mediaDevices.getDisplayMedia({ audio: { echoCancellation: false, channelCount: 2, autoGainControl: false, noiseSuppression: false }, video: { frameRate: 1, height: 100, width: 100 } }).then((stream) => {
       setCurrentPage("/connecting")
       setPeerjsOutgoingCall(peer.call(conToid, stream));
 
-      let call = peer.connect(conToid)
+      let data = peer.connect(conToid)
 
-      call.on('open', function () {
-        call.on("data", () => {
-          setCurrentPage("/connected")
-          call.close()
+      data.on('open', function () {
+        data.on("data", (data) => {
+          if (data === "start") {
+            setCurrentPage("/connected")
+          }
+          if (data === "stop") {
+            setCurrentPage("/reload")
+          }
+        })
+        data.on("close", ()=>{
+          setCurrentPage("/error")
         })
       });
     });
@@ -135,14 +182,16 @@ function App() {
 
   function acceptCall() {
     peerjsIncomingData?.send("start")
-    setTimeout(() => {
-      peerjsIncomingData?.close()
-    }, 500);
-    peerjsIncomingCall.answer(undefined)
-    peerjsIncomingCall.on("stream", (stream: any) => {
+    peerjsIncomingCall?.answer(undefined)
+    peerjsIncomingCall?.on("stream", (stream: any) => {
       setCurrentPage("/connected")
       setAudioSRC(stream)
     })
+  }
+
+  function stopCall() {
+    peerjsIncomingData?.send("stop")
+    setCurrentPage("/reload")
   }
 
   return (
@@ -161,7 +210,7 @@ function App() {
                 {PageConnecting()}
               </Route>
               <Route exact path="/connected" key="/connected">
-                {PageConnected(peerjsID, peerjsRemoteID, audioVol, setAudioVol)}
+                {PageConnected(peerjsID, peerjsRemoteID, audioVol, setAudioVol, peerjsIncomingCall, stopCall)}
                 <audio ref={audioRef} autoPlay></audio>
               </Route>
               <Route exact path="/error" key="/error">
