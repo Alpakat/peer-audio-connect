@@ -26,18 +26,23 @@ declare global {
 
 const peer = new Peer();
 
-// let call;
+let call;
 
-function makeCallToID(conToid: string, setCurrentPage: React.Dispatch<React.SetStateAction<string>>) {
+function makeCallToID(conToid: string, setCurrentPage: React.Dispatch<React.SetStateAction<string>>, setConnectedToRemote: React.Dispatch<React.SetStateAction<boolean>>) {
 
   // setCurrentPage("/enterID")
 
   navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }).then((stream) => {
     setCurrentPage("/connecting")
-    peer.call(conToid, stream);
-    // call.on('stream', (remoteStream) => {
-    //   // Show stream in some <video> element.
-    // });
+    call = peer.call(conToid, stream);
+
+    var conn = peer.connect(conToid);
+    conn.on('open', function () {
+      conn.on("data", () => {
+        setConnectedToRemote(true)
+        conn.close()
+      })
+    });
   });
 
 }
@@ -48,6 +53,8 @@ function App() {
 
   const [peerjsID, setPeerjsID] = useState<null | string>(null);
   const [peerjsRemoteID, setPeerjsRemoteID] = useState("");
+
+  const [connectedToRemote, setConnectedToRemote] = useState(false);
 
   const [currentPage, setCurrentPage] = useState("/");
 
@@ -81,8 +88,20 @@ function App() {
 
     if (currentPage === "/connecting") {
       history.replace('/connecting')
+
+      setTimeout(() => {
+        history.replace('/connected')
+      }, 1000);
     }
-  }, [history, peerjsID, currentPage])
+
+    if (currentPage === "/connected") {
+      if (connectedToRemote) {
+        history.replace('/connected')
+      } else {
+        history.replace('/connecting')
+      }
+    }
+  }, [history, peerjsID, currentPage, connectedToRemote])
 
   return (
     <div className="App">
@@ -120,7 +139,7 @@ function App() {
                       <div className="inputRow">
                         <MaskedTextField value={peerjsRemoteID} onChange={(event, newVal) => { setPeerjsRemoteID(newVal || "") }} mask="********-****-****-****-************" label="ID des anderen PCs" />
                         <PrimaryButton onClick={() => {
-                          makeCallToID(peerjsRemoteID, setCurrentPage)
+                          makeCallToID(peerjsRemoteID, setCurrentPage, setConnectedToRemote)
                         }}>Verbinden</PrimaryButton>
                       </div>
                     </div>
@@ -134,6 +153,18 @@ function App() {
                     <br />
                     <br />
                     <ProgressIndicator barHeight={3}></ProgressIndicator>
+                  </div>
+                </CustomPage>
+              </Route>
+              <Route exact path="/connected" key="/connected">
+                <CustomPage>
+                  <div className="maxWidth">
+                    <Text variant="xLarge">ID dieses PCs:</Text>
+                    <br />
+                    <Text variant="xxLarge">{peerjsID}</Text>
+                    <br />
+                    <br />
+                    <Text variant="xxLarge">Verbunden mit {peerjsRemoteID}.</Text>
                   </div>
                 </CustomPage>
               </Route>
