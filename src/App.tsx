@@ -4,12 +4,16 @@ import { useEffect, useState } from 'react';
 
 import { useHistory, Route, Switch } from 'react-router-dom';
 
-import { Text, ProgressIndicator, MaskedTextField, PrimaryButton, DefaultButton } from '@fluentui/react'
-import CustomPage from './components/CustomPage';
 
 import { AnimatePresence } from "framer-motion"
 
 import Peer from 'peerjs';
+import { PageStart } from './pages/PageStart';
+import { PageEnterID } from './pages/PageEnterID';
+import { PageConnecting } from './pages/PageConnecting';
+import { PageConnected } from './pages/PageConnected';
+import { CustomDialog } from './CustomDialog';
+import { PageError } from './pages/PageError';
 
 declare global {
   interface MediaDevices {
@@ -26,27 +30,6 @@ declare global {
 
 const peer = new Peer();
 
-let call;
-
-function makeCallToID(conToid: string, setCurrentPage: React.Dispatch<React.SetStateAction<string>>) {
-
-  // setCurrentPage("/enterID")
-
-  navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }).then((stream) => {
-    setCurrentPage("/connecting")
-    call = peer.call(conToid, stream);
-
-    var conn = peer.connect(conToid);
-    conn.on('open', function () {
-      conn.on("data", () => {
-        setCurrentPage("/connected")
-        conn.close()
-      })
-    });
-  });
-
-}
-
 function App() {
 
   const history = useHistory();
@@ -54,7 +37,11 @@ function App() {
   const [peerjsID, setPeerjsID] = useState<null | string>(null);
   const [peerjsRemoteID, setPeerjsRemoteID] = useState("");
 
-  const [connectedToRemote, setConnectedToRemote] = useState(false);
+  const [peerjsOutgoingCall, setPeerjsOutgoingCall] = useState<any>();
+
+  // const [peerjsOutgoingCall, setPeerjsOutgoingCall] = useState<any>();
+  const [peerjsIncomingCall, setPeerjsIncomingCall] = useState<any>();
+  const [peerjsIncomingData, setPeerjsIncomingData] = useState<Peer.DataConnection>();
 
   const [currentPage, setCurrentPage] = useState("/");
 
@@ -62,6 +49,16 @@ function App() {
 
     peer.on("open", (id) => {
       setPeerjsID(id)
+    })
+
+    peer.on("call", (con) => {
+      setPeerjsRemoteID(con.peer)
+      console.log("incoming")
+      setPeerjsIncomingCall(con)
+    })
+
+    peer.on("connection", (con)=>{
+      setPeerjsIncomingData(con)
     })
 
     setTimeout(() => {
@@ -81,7 +78,12 @@ function App() {
       if (peerjsID === null) {
         history.replace('/')
       } else {
-        history.replace('/enterID')
+        console.log(peerjsIncomingCall)
+        if (peerjsIncomingCall === undefined) {
+          history.replace('/enterID')
+        } else {
+          setCurrentPage('/callrec')
+        }
       }
 
     }
@@ -91,98 +93,63 @@ function App() {
     }
 
     if (currentPage === "/connected") {
-        history.replace('/connected')
+      history.replace('/connected')
     }
-  }, [history, peerjsID, currentPage, connectedToRemote])
+  }, [history, peerjsID, currentPage, peerjsIncomingCall])
+
+  function makeCallToID(conToid: string) {
+
+    navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }).then((stream) => {
+      setCurrentPage("/connecting")
+      setPeerjsOutgoingCall(peer.call(conToid, stream));
+
+      let call = peer.connect(conToid)
+
+      call.on('open', function () {
+        call.on("data", () => {
+          setCurrentPage("/connected")
+          call.close()
+        })
+      });
+    });
+
+  }
+
+  function acceptCall() {
+    peerjsIncomingData?.send("connected")
+    peerjsIncomingData?.close()
+    peerjsIncomingCall.answer(undefined)
+    peerjsIncomingCall.on("stream", () => {
+      setCurrentPage("/connected")
+    })
+  }
 
   return (
     <div className="App">
-      {/* <AnimatedSwitch
-        atEnter={{ opacity: 0, top: 35 }}
-        atLeave={{ opacity: 0, top: 35 }}
-        atActive={{ opacity: 1, top: 0 }}
-        runOnMount={true}
-        wrapperComponent={"div"}
-        className="main-page-wrapper"
-      > */}
       <Route
         render={({ location }) => (
           <AnimatePresence initial={true}>
             <Switch location={location} key={location.pathname}>
               <Route exact path="/" key="/">
-                <CustomPage>
-                  <div className="maxWidth">
-                    <Text variant="xxLarge">Verbindung zum Server wird hergestellt.</Text>
-                    <br />
-                    <br />
-                    <ProgressIndicator barHeight={3}></ProgressIndicator>
-                  </div>
-                </CustomPage>
+                {PageStart()}
               </Route>
               <Route exact path="/enterID" key="/enterID">
-                <CustomPage>
-                  <div className="idEnterGrid">
-                    <div>
-                      <Text variant="xLarge">ID dieses PCs:</Text>
-                      <br />
-                      <Text variant="xxLarge">{peerjsID}</Text>
-                    </div>
-                    <div className="maxWidth">
-                      <div className="inputRow">
-                        <MaskedTextField value={peerjsRemoteID} onChange={(event, newVal) => { setPeerjsRemoteID(newVal || "") }} mask="********-****-****-****-************" label="ID des anderen PCs" />
-                        <PrimaryButton onClick={() => {
-                          makeCallToID(peerjsRemoteID, setCurrentPage)
-                        }}>Verbinden</PrimaryButton>
-                      </div>
-                    </div>
-                  </div>
-                </CustomPage>
+                {PageEnterID(peerjsID, peerjsRemoteID, makeCallToID, setPeerjsRemoteID, setCurrentPage)}
               </Route>
               <Route exact path="/connecting" key="/connecting">
-                <CustomPage>
-                  <div className="maxWidth">
-                    <Text variant="xxLarge">Verbindung zum anderen PC wird hergestellt.</Text>
-                    <br />
-                    <br />
-                    <ProgressIndicator barHeight={3}></ProgressIndicator>
-                  </div>
-                </CustomPage>
+                {PageConnecting()}
               </Route>
               <Route exact path="/connected" key="/connected">
-                <CustomPage>
-                  <div className="maxWidth">
-                    <Text variant="xLarge">ID dieses PCs:</Text>
-                    <br />
-                    <Text variant="xxLarge">{peerjsID}</Text>
-                    <br />
-                    <br />
-                    <Text variant="xxLarge">Verbunden mit {peerjsRemoteID}.</Text>
-                  </div>
-                </CustomPage>
+                {PageConnected(peerjsID, peerjsRemoteID)}
               </Route>
               <Route exact path="/error" key="/error">
-                <CustomPage>
-                  <div className="maxWidth">
-                    <Text variant="xxLarge">Ein Fehler ist aufgetreten.</Text>
-                    <br />
-                    <br />
-                    <DefaultButton onClick={() => {
-                      history.replace('/reload')
-                      setTimeout(() => {
-                        window.location.reload()
-                      }, 300);
-                    }}>Erneut Versuchen</DefaultButton>
-                  </div>
-                </CustomPage>
+                {PageError(history)}
               </Route>
               <Route exact path="/reload" key="/reload">
-                <CustomPage>
-                  <div><Text variant="xxLarge"></Text></div>
-                </CustomPage>
               </Route>
             </Switch>
           </AnimatePresence>)} />
-      {/* </AnimatedSwitch> */}
+      {CustomDialog(currentPage, peerjsRemoteID, acceptCall, setCurrentPage)}
     </div >
   );
 }
