@@ -26,12 +26,12 @@ declare global {
 
 const peer = new Peer();
 
-let call;
+// let call;
 
 function makeCallToID(conToid: string) {
 
   navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }).then((stream) => {
-    call = peer.call(conToid, stream);
+    peer.call(conToid, stream);
     // call.on('stream', (remoteStream) => {
     //   // Show stream in some <video> element.
     // });
