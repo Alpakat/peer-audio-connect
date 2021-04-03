@@ -120,6 +120,7 @@ function App() {
                         <MaskedTextField value={peerjsRemoteID} onChange={(event, newVal) => { setPeerjsRemoteID(newVal || "") }} mask="********-****-****-****-************" label="ID des anderen PCs" />
                         <PrimaryButton onClick={() => {
                           makeCallToID(peerjsRemoteID)
+                          setCurrentPage("/connecting")
                         }}>Verbinden</PrimaryButton>
                       </div>
                     </div>
