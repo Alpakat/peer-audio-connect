@@ -40,6 +40,7 @@ function App() {
   const [peerjsOutgoingCall, setPeerjsOutgoingCall] = useState<any>();
 
   const [audioSRC, setAudioSRC] = useState<any>();
+  const [audioVol, setAudioVol] = useState(100);
   const audioRef = useRef<HTMLAudioElement>(null)
 
   // const [peerjsOutgoingCall, setPeerjsOutgoingCall] = useState<any>();
@@ -107,9 +108,16 @@ function App() {
     }
   }, [audioSRC, audioRef])
 
+  useEffect(() => {
+    try {
+      audioRef!.current!.volume = audioVol/100
+    } catch (error) {
+    }
+  }, [audioVol])
+
   function makeCallToID(conToid: string) {
 
-    navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }).then((stream) => {
+    navigator.mediaDevices.getDisplayMedia({ audio: { echoCancellation: false, channelCount: 2, autoGainControl: false, noiseSuppression: false }, video: { frameRate: 1, height: 100, width: 100} }).then((stream) => {
       setCurrentPage("/connecting")
       setPeerjsOutgoingCall(peer.call(conToid, stream));
 
@@ -153,7 +161,7 @@ function App() {
                 {PageConnecting()}
               </Route>
               <Route exact path="/connected" key="/connected">
-                {PageConnected(peerjsID, peerjsRemoteID)}
+                {PageConnected(peerjsID, peerjsRemoteID, audioVol, setAudioVol)}
                 <audio ref={audioRef} autoPlay></audio>
               </Route>
               <Route exact path="/error" key="/error">
