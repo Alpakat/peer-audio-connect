@@ -20,6 +20,9 @@ export function PageConnected(peerjsID: string | null, peerjsRemoteID: string, a
                     showValue
                 />
             }
+            <br />
+            <br />
+            <br />
             <PrimaryButton onClick={()=>{stopCall()}}>Beenden</PrimaryButton>
         </div>
     </CustomPage>;
