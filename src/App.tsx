@@ -28,7 +28,7 @@ const peer = new Peer();
 
 let call;
 
-function makeCallToID(conToid: string, setCurrentPage: React.Dispatch<React.SetStateAction<string>>, setConnectedToRemote: React.Dispatch<React.SetStateAction<boolean>>) {
+function makeCallToID(conToid: string, setCurrentPage: React.Dispatch<React.SetStateAction<string>>) {
 
   // setCurrentPage("/enterID")
 
@@ -39,7 +39,7 @@ function makeCallToID(conToid: string, setCurrentPage: React.Dispatch<React.SetS
     var conn = peer.connect(conToid);
     conn.on('open', function () {
       conn.on("data", () => {
-        setConnectedToRemote(true)
+        setCurrentPage("/connected")
         conn.close()
       })
     });
@@ -88,18 +88,10 @@ function App() {
 
     if (currentPage === "/connecting") {
       history.replace('/connecting')
-
-      setTimeout(() => {
-        history.replace('/connected')
-      }, 1000);
     }
 
     if (currentPage === "/connected") {
-      if (connectedToRemote) {
         history.replace('/connected')
-      } else {
-        history.replace('/connecting')
-      }
     }
   }, [history, peerjsID, currentPage, connectedToRemote])
 
@@ -139,7 +131,7 @@ function App() {
                       <div className="inputRow">
                         <MaskedTextField value={peerjsRemoteID} onChange={(event, newVal) => { setPeerjsRemoteID(newVal || "") }} mask="********-****-****-****-************" label="ID des anderen PCs" />
                         <PrimaryButton onClick={() => {
-                          makeCallToID(peerjsRemoteID, setCurrentPage, setConnectedToRemote)
+                          makeCallToID(peerjsRemoteID, setCurrentPage)
                         }}>Verbinden</PrimaryButton>
                       </div>
                     </div>
