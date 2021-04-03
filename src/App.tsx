@@ -28,11 +28,12 @@ const peer = new Peer();
 
 // let call;
 
-function makeCallToID(conToid: string) {
+function makeCallToID(conToid: string, setCurrentPage: React.Dispatch<React.SetStateAction<string>>) {
 
   // setCurrentPage("/enterID")
 
   navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }).then((stream) => {
+    setCurrentPage("/connecting")
     peer.call(conToid, stream);
     // call.on('stream', (remoteStream) => {
     //   // Show stream in some <video> element.
@@ -119,8 +120,7 @@ function App() {
                       <div className="inputRow">
                         <MaskedTextField value={peerjsRemoteID} onChange={(event, newVal) => { setPeerjsRemoteID(newVal || "") }} mask="********-****-****-****-************" label="ID des anderen PCs" />
                         <PrimaryButton onClick={() => {
-                          makeCallToID(peerjsRemoteID)
-                          setCurrentPage("/connecting")
+                          makeCallToID(peerjsRemoteID, setCurrentPage)
                         }}>Verbinden</PrimaryButton>
                       </div>
                     </div>
