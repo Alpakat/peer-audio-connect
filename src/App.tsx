@@ -30,6 +30,8 @@ const peer = new Peer();
 
 function makeCallToID(conToid: string) {
 
+  // setCurrentPage("/enterID")
+
   navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }).then((stream) => {
     peer.call(conToid, stream);
     // call.on('stream', (remoteStream) => {
