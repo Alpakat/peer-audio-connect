@@ -14,7 +14,7 @@ on:
 jobs:
   deploy:
     # Operating system to run job on
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     # Steps in job
     steps:
