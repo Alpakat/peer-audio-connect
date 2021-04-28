@@ -9,6 +9,7 @@ import { AnimatePresence } from "framer-motion"
 
 import Peer from 'peerjs';
 import { PageStart } from './pages/PageStart';
+import { PageLogin } from './pages/PageLogin';
 import { PageEnterID } from './pages/PageEnterID';
 import { PageConnecting } from './pages/PageConnecting';
 import { PageConnected } from './pages/PageConnected';
@@ -86,6 +87,11 @@ function App() {
   }, [])
 
   useEffect(() => {
+
+    if (window.localStorage.getItem("alpakaauth") !== "alpakat2"){
+      history.replace('/login')
+      return;
+    }
 
     if (currentPage === "/") {
       history.replace('/')
@@ -172,7 +178,7 @@ function App() {
             setCurrentPage("/reload")
           }
         })
-        data.on("close", ()=>{
+        data.on("close", () => {
           setCurrentPage("/error")
         })
       });
@@ -200,6 +206,9 @@ function App() {
         render={({ location }) => (
           <AnimatePresence initial={true}>
             <Switch location={location} key={location.pathname}>
+              <Route exact path="/login" key="/login">
+                {<PageLogin/>}
+              </Route>
               <Route exact path="/" key="/">
                 {PageStart()}
               </Route>
