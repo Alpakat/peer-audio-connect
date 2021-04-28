@@ -15,7 +15,6 @@ import { PageConnecting } from './pages/PageConnecting';
 import { PageConnected } from './pages/PageConnected';
 import { CustomDialog } from './CustomDialog';
 import { PageError } from './pages/PageError';
-import { callbackify } from 'node:util';
 
 declare global {
   interface MediaDevices {

@@ -1,10 +1,7 @@
-import useClipboard from "react-use-clipboard";
 
 import { Text, TextField, PrimaryButton } from '@fluentui/react';
 import CustomPage from '../components/CustomPage';
 import { useState } from "react";
-
-import bcript from "bcryptjs"
 
 export function PageLogin() {
 
